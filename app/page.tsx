@@ -1,65 +1,174 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 
-export default function Home() {
+export default function OnboardingPage() {
+  const router = useRouter();
+
+  const [username, setUsername] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const selected = Array.from(e.target.files || []);
+
+    if (selected.length > 6) {
+      setError("You can upload a maximum of 6 images.");
+      return;
+    }
+
+    setFiles(selected);
+    setError("");
+  }
+
+  async function handleSubmit() {
+    setError("");
+
+    if (!username.trim()) {
+      setError("Username is required.");
+      return;
+    }
+
+    if (files.length === 0) {
+      setError("Please upload at least 1 image.");
+      return;
+    }
+
+    if (files.length === 1) {
+      setError("Please upload at least 1 more image.");
+      return;
+    }
+
+    setLoading(true);
+
+    const form = new FormData();
+    form.append("username", username);
+    files.forEach((file) => form.append("files[]", file));
+
+    const res = await fetch("/api/upload", { method: "POST", body: form });
+    const data = await res.json();
+    setLoading(false);
+
+    if (data.error) {
+      setError(data.error);
+      return;
+    }
+
+    localStorage.setItem("userId", data.userId);
+    router.push("/game");
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="relative min-h-screen w-full overflow-hidden">
+      {/* Background Image */}
+      <Image
+        src="/img/bg.png"
+        alt="Background"
+        fill
+        className="object-cover"
+        priority
+      />
+
+      {/* Overlay for soft gradient */}
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px]" />
+
+      {/* Right-Side Glass Form */}
+
+      <div className="absolute right-[8%] top-0 h-full flex items-center p-10">
+        <div
+          className="
+      bg-white/20 backdrop-blur-xl shadow-2xl border border-white/10
+      rounded-2xl p-10 w-[420px]
+      flex flex-col gap-6
+    "
+        >
+          <h1 className="text-3xl font-bold text-black text-center drop-shadow-lg">
+            Create Your Profile
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+
+          {error && (
+            <p className="text-red-300 text-center mb-2 font-medium">{error}</p>
+          )}
+
+          {/* Floating Label Input */}
+          <div className="relative w-full">
+            <input
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="
+          w-full border-b border-white/50 bg-transparent py-3 text-white
+          focus:outline-none focus:border-blue-300 peer transition
+        "
+              placeholder=" "
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            <label
+              htmlFor="username"
+              className={`
+          absolute left-0 pointer-events-none transition-all duration-200
+          ${
+            username
+              ? "-top-2 text-sm text-blue-200"
+              : "top-3 text-base text-white/80"
+          }
+        `}
+            >
+              Choose a Username
+            </label>
+          </div>
+
+          {/* Upload Hint */}
+          <p className="text-sm text-white/70 -mt-3">Upload 2 to 6 images.</p>
+
+          {/* BUTTON ROW */}
+          <div className="flex gap-4 mt-2">
+            {/* Select Images Button */}
+            <label
+              htmlFor="fileInput"
+              className="
+          flex-1 text-center py-3 rounded-lg cursor-pointer
+          bg-white/20 border border-white/15 text-white shadow-lg
+          backdrop-blur-md transition hover:bg-white/30
+        "
+            >
+              Select Images
+            </label>
+
+            <input
+              id="fileInput"
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileChange}
+              className="hidden"
+            />
+
+            {/* Continue Button */}
+            <button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="
+          flex-1 py-3 rounded-lg bg-white/15 border border-white/30 text-white
+          shadow-lg backdrop-blur-md transition hover:bg-white/30
+          disabled:opacity-40
+        "
+            >
+              {loading ? "..." : "Continue"}
+            </button>
+          </div>
+
+          {/* File Count */}
+          {files.length > 0 && (
+            <p className="text-sm text-green-300 text-center">
+              {files.length} image(s) selected
+            </p>
+          )}
         </div>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
